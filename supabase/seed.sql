@@ -1,0 +1,3 @@
+-- Opcional: crea usuarios desde Authentication > Users en Supabase Studio.
+-- El trigger handle_new_user generará su fila en public.profiles.
+-- No se incluyen credenciales ni usuarios ficticios en este archivo.

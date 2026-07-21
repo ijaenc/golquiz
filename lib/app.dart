@@ -5,7 +5,7 @@ import 'core/constants/app_strings.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'screens/home/home_screen.dart';
-import 'screens/welcome/welcome_screen.dart';
+import 'screens/auth/login_screen.dart';
 
 class GolQuizApp extends StatelessWidget {
   const GolQuizApp({super.key});
@@ -25,7 +25,7 @@ class GolQuizApp extends StatelessWidget {
           }
           return auth.isAuthenticated
               ? const HomeScreen()
-              : const WelcomeScreen();
+              : const LoginScreen();
         },
       ),
     );

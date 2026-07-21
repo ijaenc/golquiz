@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/layout/responsive_layout.dart';
 import '../../data/local_questions.dart';
 import '../../models/quiz_category.dart';
 import '../../providers/profile_provider.dart';
@@ -58,39 +59,52 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       ),
       body: Stack(
         children: [
-          ListView.separated(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-            itemCount: quizCategories.length + 1,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return const Padding(
-                  padding: EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Elige una categoría',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                        ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: ResponsiveLayout.maxContentWidth,
+              ),
+              child: ListView.separated(
+                padding: EdgeInsets.fromLTRB(
+                  ResponsiveLayout.pagePadding(context),
+                  12,
+                  ResponsiveLayout.pagePadding(context),
+                  32,
+                ),
+                itemCount: quizCategories.length + 1,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return const Padding(
+                      padding: EdgeInsets.only(bottom: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Elige una categoría',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Selecciona el tema sobre el que quieres jugar.',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Selecciona el tema sobre el que quieres jugar.',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              final category = quizCategories[index - 1];
-              return CategoryCard(
-                category: category,
-                onTap: () => _openSettings(category),
-              );
-            },
+                    );
+                  }
+                  final category = quizCategories[index - 1];
+                  return CategoryCard(
+                    category: category,
+                    onTap: () => _openSettings(category),
+                  );
+                },
+              ),
+            ),
           ),
           if (_isStarting)
             const ColoredBox(

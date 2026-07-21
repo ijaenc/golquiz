@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/layout/responsive_layout.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 
@@ -68,6 +69,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<ProfileProvider>().user;
+    final auth = context.watch<AuthProvider>();
     final records =
         user.bestScores.entries
             .where(
@@ -79,127 +81,143 @@ class ProfileScreen extends StatelessWidget {
             .toList()
           ..sort((a, b) => b.value.compareTo(a.value));
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 34,
-                backgroundColor: AppColors.primary,
-                child: Text(
-                  user.initial,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.name,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Text(
-                      'Usuario demo local',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () => _editName(context, user.name),
-                icon: const Icon(Icons.edit_rounded),
-                tooltip: 'Editar nombre',
-              ),
-            ],
-          ),
-          const SizedBox(height: 26),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.65,
-            children: [
-              _ProfileMetric(
-                label: 'Puntos totales',
-                value: '${user.totalScore}',
-              ),
-              _ProfileMetric(label: 'Partidas', value: '${user.gamesPlayed}'),
-              _ProfileMetric(
-                label: 'Correctas',
-                value: '${user.correctAnswers}',
-              ),
-              _ProfileMetric(
-                label: 'Incorrectas',
-                value: '${user.incorrectAnswers}',
-              ),
-              _ProfileMetric(
-                label: 'Acierto',
-                value: '${(user.accuracy * 100).round()}%',
-              ),
-              _ProfileMetric(label: 'Mejor racha', value: '${user.bestStreak}'),
-            ],
-          ),
-          const SizedBox(height: 28),
-          const Text(
-            'Mejores resultados',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 10),
-          if (records.isEmpty)
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(18),
-                child: Text('Juega tu primer quiz para registrar un récord.'),
-              ),
-            )
-          else
-            ...records
-                .take(6)
-                .map(
-                  (entry) => Card(
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.emoji_events_rounded,
-                        color: AppColors.warning,
-                      ),
-                      title: Text(_formatRecord(entry.key)),
-                      trailing: Text(
-                        '${entry.value} pts',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
+      child: ResponsiveContent(
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveLayout.pagePadding(context),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 34,
+                  backgroundColor: AppColors.primary,
+                  child: Text(
+                    user.initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            onPressed: () => _editName(context, user.name),
-            icon: const Icon(Icons.edit_rounded),
-            label: const Text('Editar nombre'),
-          ),
-          OutlinedButton.icon(
-            onPressed: () => _reset(context),
-            icon: const Icon(Icons.restart_alt_rounded),
-            label: const Text('Reiniciar datos locales'),
-          ),
-          TextButton.icon(
-            onPressed: () => context.read<AuthProvider>().signOut(),
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Cerrar sesión demo'),
-          ),
-        ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        auth.isDemo
+                            ? 'Usuario demo local'
+                            : (user.email ?? 'Cuenta GolQuiz'),
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _editName(context, user.name),
+                  icon: const Icon(Icons.edit_rounded),
+                  tooltip: 'Editar nombre',
+                ),
+              ],
+            ),
+            const SizedBox(height: 26),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.65,
+              children: [
+                _ProfileMetric(
+                  label: 'Puntos totales',
+                  value: '${user.totalScore}',
+                ),
+                _ProfileMetric(label: 'Partidas', value: '${user.gamesPlayed}'),
+                _ProfileMetric(
+                  label: 'Correctas',
+                  value: '${user.correctAnswers}',
+                ),
+                _ProfileMetric(
+                  label: 'Incorrectas',
+                  value: '${user.incorrectAnswers}',
+                ),
+                _ProfileMetric(
+                  label: 'Acierto',
+                  value: '${(user.accuracy * 100).round()}%',
+                ),
+                _ProfileMetric(
+                  label: 'Mejor racha',
+                  value: '${user.bestStreak}',
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            const Text(
+              'Mejores resultados',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            if (records.isEmpty)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(18),
+                  child: Text('Juega tu primer quiz para registrar un récord.'),
+                ),
+              )
+            else
+              ...records
+                  .take(6)
+                  .map(
+                    (entry) => Card(
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.emoji_events_rounded,
+                          color: AppColors.warning,
+                        ),
+                        title: Text(_formatRecord(entry.key)),
+                        trailing: Text(
+                          '${entry.value} pts',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                  ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: () => _editName(context, user.name),
+              icon: const Icon(Icons.edit_rounded),
+              label: const Text('Editar nombre'),
+            ),
+            if (auth.isDemo)
+              OutlinedButton.icon(
+                onPressed: () => _reset(context),
+                icon: const Icon(Icons.restart_alt_rounded),
+                label: const Text('Reiniciar datos locales'),
+              ),
+            if (context.watch<ProfileProvider>().error != null)
+              Text(
+                context.watch<ProfileProvider>().error!,
+                style: const TextStyle(color: AppColors.error),
+              ),
+            TextButton.icon(
+              onPressed: () => context.read<AuthProvider>().signOut(),
+              icon: const Icon(Icons.logout_rounded),
+              label: Text(auth.isDemo ? 'Cerrar sesión demo' : 'Cerrar sesión'),
+            ),
+          ],
+        ),
       ),
     );
   }

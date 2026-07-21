@@ -10,6 +10,7 @@ class QuizResult {
     required this.correctAnswers,
     required this.incorrectAnswers,
     required this.bestStreak,
+    this.attemptId,
   });
 
   final String categoryId;
@@ -20,6 +21,7 @@ class QuizResult {
   final int correctAnswers;
   final int incorrectAnswers;
   final int bestStreak;
+  final String? attemptId;
 
   double get accuracy =>
       questionCount == 0 ? 0 : correctAnswers / questionCount;

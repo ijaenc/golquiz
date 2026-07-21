@@ -6,6 +6,7 @@ import '../../providers/profile_provider.dart';
 import '../../providers/ranking_provider.dart';
 import '../../widgets/primary_button.dart';
 import '../categories/categories_screen.dart';
+import '../groups/groups_screen.dart';
 import '../profile/profile_screen.dart';
 import '../ranking/ranking_screen.dart';
 
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final pages = [
       const _HomeTab(),
       const RankingScreen(),
+      const GroupsScreen(),
       const ProfileScreen(),
     ];
     return Scaffold(
@@ -42,6 +44,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.leaderboard_outlined),
             selectedIcon: Icon(Icons.leaderboard_rounded),
             label: 'Ranking',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups_rounded),
+            label: 'Grupos',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
@@ -147,7 +154,7 @@ class _HomeTab extends StatelessWidget {
                     Expanded(
                       child: _MetricCard(
                         icon: Icons.emoji_events_rounded,
-                        value: '#$position',
+                        value: position > 0 ? '#$position' : '—',
                         label: 'Ranking',
                       ),
                     ),

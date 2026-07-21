@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:math';
 
 import '../data/local_questions.dart';
 import '../models/quiz_category.dart';
@@ -127,10 +128,16 @@ class QuizProvider extends ChangeNotifier {
       correctAnswers: _correctAnswers,
       incorrectAnswers: _questions.length - _correctAnswers,
       bestStreak: _bestStreak,
+      attemptId: _createAttemptId(),
     );
     _lastResult = result;
     await _profileProvider.recordResult(result);
     notifyListeners();
+  }
+
+  String _createAttemptId() {
+    final random = Random.secure().nextInt(1 << 32).toRadixString(16);
+    return '${DateTime.now().microsecondsSinceEpoch}-$random';
   }
 
   Future<void> replay() async {

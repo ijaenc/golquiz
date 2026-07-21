@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/layout/responsive_layout.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/answer_option_card.dart';
 import '../../widgets/primary_button.dart';
@@ -51,142 +52,150 @@ class QuizScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: quiz.progress,
-                minHeight: 10,
-                backgroundColor: AppColors.outline,
-                color: AppColors.primary,
-              ),
+        child: ResponsiveContent(
+          padding: EdgeInsets.zero,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+              ResponsiveLayout.pagePadding(context),
+              8,
+              ResponsiveLayout.pagePadding(context),
+              28,
             ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Chip(
-                  avatar: const Icon(Icons.sports_soccer, size: 16),
-                  label: Text(quiz.category?.name ?? 'GolQuiz'),
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: quiz.progress,
+                  minHeight: 10,
+                  backgroundColor: AppColors.outline,
+                  color: AppColors.primary,
                 ),
-                const Spacer(),
-                Text(
-                  quiz.difficulty.label,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Container(
-              constraints: const BoxConstraints(minHeight: 150),
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 18),
+              Row(
                 children: [
+                  Chip(
+                    avatar: const Icon(Icons.sports_soccer, size: 16),
+                    label: Text(quiz.category?.name ?? 'GolQuiz'),
+                  ),
+                  const Spacer(),
                   Text(
-                    question.text,
+                    quiz.difficulty.label,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (quiz.currentStreak >= 2) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      '🔥 Racha x${quiz.currentStreak}',
-                      style: const TextStyle(
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            for (var index = 0; index < question.options.length; index++) ...[
-              AnswerOptionCard(
-                index: index,
-                text: question.options[index],
-                isSelected: quiz.selectedAnswerIndex == index,
-                isAnswered: quiz.isAnswered,
-                isCorrect: question.correctAnswerIndex == index,
-                onTap: () => context.read<QuizProvider>().selectAnswer(index),
-              ),
-              const SizedBox(height: 10),
-            ],
-            if (quiz.isAnswered) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 14),
               Container(
-                padding: const EdgeInsets.all(18),
+                constraints: const BoxConstraints(minHeight: 150),
+                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  color: isCorrect
-                      ? const Color(0xFFECFDF3)
-                      : const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isCorrect ? AppColors.success : AppColors.error,
-                  ),
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          isCorrect
-                              ? Icons.check_circle_rounded
-                              : Icons.cancel_rounded,
-                          color: isCorrect
-                              ? AppColors.success
-                              : AppColors.error,
+                    Text(
+                      question.text,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                      ),
+                    ),
+                    if (quiz.currentStreak >= 2) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        '🔥 Racha x${quiz.currentStreak}',
+                        style: const TextStyle(
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.w700,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isCorrect
-                              ? '¡Respuesta correcta!'
-                              : 'Respuesta incorrecta',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              for (var index = 0; index < question.options.length; index++) ...[
+                AnswerOptionCard(
+                  index: index,
+                  text: question.options[index],
+                  isSelected: quiz.selectedAnswerIndex == index,
+                  isAnswered: quiz.isAnswered,
+                  isCorrect: question.correctAnswerIndex == index,
+                  onTap: () => context.read<QuizProvider>().selectAnswer(index),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (quiz.isAnswered) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: isCorrect
+                        ? const Color(0xFFECFDF3)
+                        : const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isCorrect ? AppColors.success : AppColors.error,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            isCorrect
+                                ? Icons.check_circle_rounded
+                                : Icons.cancel_rounded,
                             color: isCorrect
                                 ? AppColors.success
                                 : AppColors.error,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(question.explanation),
-                  ],
+                          const SizedBox(width: 8),
+                          Text(
+                            isCorrect
+                                ? '¡Respuesta correcta!'
+                                : 'Respuesta incorrecta',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: isCorrect
+                                  ? AppColors.success
+                                  : AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(question.explanation),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              PrimaryButton(
-                label: quiz.currentIndex == quiz.questions.length - 1
-                    ? 'Ver resultados'
-                    : 'Siguiente pregunta',
-                onPressed: () => _continue(context),
-              ),
-            ] else
-              PrimaryButton(
-                label: 'Responder',
-                icon: Icons.check_rounded,
-                onPressed: quiz.selectedAnswerIndex == null
-                    ? null
-                    : context.read<QuizProvider>().submitAnswer,
-              ),
-          ],
+                const SizedBox(height: 18),
+                PrimaryButton(
+                  label: quiz.currentIndex == quiz.questions.length - 1
+                      ? 'Ver resultados'
+                      : 'Siguiente pregunta',
+                  onPressed: () => _continue(context),
+                ),
+              ] else
+                PrimaryButton(
+                  label: 'Responder',
+                  icon: Icons.check_rounded,
+                  onPressed: quiz.selectedAnswerIndex == null
+                      ? null
+                      : context.read<QuizProvider>().submitAnswer,
+                ),
+            ],
+          ),
         ),
       ),
     );

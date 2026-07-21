@@ -10,6 +10,7 @@ class LocalStorageService {
   static const _sessionKey = 'demo_session';
   static const _userKey = 'demo_user';
   static const _usedQuestionsKey = 'used_questions';
+  static const _processedAttemptsKey = 'processed_attempts';
 
   final SharedPreferences _preferences;
 
@@ -50,8 +51,24 @@ class LocalStorageService {
   Future<void> saveUsedQuestionIds(Map<String, List<String>> value) =>
       _preferences.setString(_usedQuestionsKey, jsonEncode(value));
 
+  bool isAttemptProcessed(String attemptId) =>
+      (_preferences.getStringList(_processedAttemptsKey) ?? const []).contains(
+        attemptId,
+      );
+
+  Future<void> markAttemptProcessed(String attemptId) async {
+    final attempts = _preferences.getStringList(_processedAttemptsKey) ?? [];
+    if (attempts.contains(attemptId)) return;
+    attempts.add(attemptId);
+    final retained = attempts.length > 200
+        ? attempts.sublist(attempts.length - 200)
+        : attempts;
+    await _preferences.setStringList(_processedAttemptsKey, retained);
+  }
+
   Future<void> resetUserData() async {
     await _preferences.remove(_userKey);
     await _preferences.remove(_usedQuestionsKey);
+    await _preferences.remove(_processedAttemptsKey);
   }
 }

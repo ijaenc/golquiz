@@ -10,6 +10,9 @@ class AppUser {
     required this.incorrectAnswers,
     required this.bestStreak,
     required this.bestScores,
+    this.username,
+    this.email,
+    this.avatarUrl,
   });
 
   factory AppUser.demo() => const AppUser(
@@ -21,6 +24,7 @@ class AppUser {
     incorrectAnswers: 0,
     bestStreak: 0,
     bestScores: {},
+    username: 'demo',
   );
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
@@ -34,7 +38,28 @@ class AppUser {
     bestScores: (json['bestScores'] as Map<String, dynamic>? ?? {}).map(
       (key, value) => MapEntry(key, value as int),
     ),
+    username: json['username'] as String?,
+    email: json['email'] as String?,
+    avatarUrl: json['avatarUrl'] as String?,
   );
+
+  factory AppUser.fromSupabase(Map<String, dynamic> json, {String? email}) =>
+      AppUser(
+        id: json['id'] as String,
+        name:
+            (json['display_name'] as String?) ??
+            (json['username'] as String?) ??
+            'Futbolero',
+        username: json['username'] as String?,
+        email: email,
+        avatarUrl: json['avatar_url'] as String?,
+        totalScore: json['total_points'] as int? ?? 0,
+        gamesPlayed: json['games_played'] as int? ?? 0,
+        correctAnswers: json['correct_answers'] as int? ?? 0,
+        incorrectAnswers: json['incorrect_answers'] as int? ?? 0,
+        bestStreak: json['best_streak'] as int? ?? 0,
+        bestScores: const {},
+      );
 
   final String id;
   final String name;
@@ -44,6 +69,9 @@ class AppUser {
   final int incorrectAnswers;
   final int bestStreak;
   final Map<String, int> bestScores;
+  final String? username;
+  final String? email;
+  final String? avatarUrl;
 
   String get initial =>
       name.trim().isEmpty ? 'G' : name.trim()[0].toUpperCase();
@@ -58,6 +86,9 @@ class AppUser {
     int? incorrectAnswers,
     int? bestStreak,
     Map<String, int>? bestScores,
+    String? username,
+    String? email,
+    String? avatarUrl,
   }) => AppUser(
     id: id,
     name: name ?? this.name,
@@ -67,6 +98,9 @@ class AppUser {
     incorrectAnswers: incorrectAnswers ?? this.incorrectAnswers,
     bestStreak: bestStreak ?? this.bestStreak,
     bestScores: bestScores ?? this.bestScores,
+    username: username ?? this.username,
+    email: email ?? this.email,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
   );
 
   Map<String, dynamic> toJson() => {
@@ -78,5 +112,8 @@ class AppUser {
     'incorrectAnswers': incorrectAnswers,
     'bestStreak': bestStreak,
     'bestScores': bestScores,
+    'username': username,
+    'email': email,
+    'avatarUrl': avatarUrl,
   };
 }
