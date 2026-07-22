@@ -184,6 +184,7 @@ class QuizScreen extends StatelessWidget {
                   label: quiz.currentIndex == quiz.questions.length - 1
                       ? 'Ver resultados'
                       : 'Siguiente pregunta',
+                  isLoading: quiz.isLoading,
                   onPressed: () => _continue(context),
                 ),
               ] else

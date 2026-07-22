@@ -38,14 +38,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       username: _usernameController.text,
       displayName: _nameController.text,
     );
-    if (success && mounted && !context.read<AuthProvider>().isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.read<AuthProvider>().message ?? 'Cuenta creada.',
-          ),
-        ),
-      );
+    if (!success || !mounted) return;
+    final auth = context.read<AuthProvider>();
+    if (auth.isAuthenticated) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(auth.message ?? 'Cuenta creada.')));
       Navigator.pop(context);
     }
   }

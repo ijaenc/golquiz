@@ -1,5 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'dart:math';
+
+import 'package:flutter/foundation.dart';
 
 import '../data/local_questions.dart';
 import '../models/quiz_category.dart';
@@ -27,6 +28,8 @@ class QuizProvider extends ChangeNotifier {
   int _bestStreak = 0;
   int _correctAnswers = 0;
   QuizResult? _lastResult;
+  Future<void>? _finishFuture;
+  String? _finishError;
 
   QuizCategory? get category => _category;
   QuizDifficulty get difficulty => _difficulty;
@@ -45,6 +48,7 @@ class QuizProvider extends ChangeNotifier {
   int get incorrectAnswers =>
       _currentIndex + (_isAnswered ? 1 : 0) - _correctAnswers;
   QuizResult? get lastResult => _lastResult;
+  String? get finishError => _finishError;
   double get progress =>
       _questions.isEmpty ? 0 : (_currentIndex + 1) / _questions.length;
 
@@ -71,6 +75,8 @@ class QuizProvider extends ChangeNotifier {
     _bestStreak = 0;
     _correctAnswers = 0;
     _lastResult = null;
+    _finishFuture = null;
+    _finishError = null;
     _isLoading = false;
     notifyListeners();
   }
@@ -116,9 +122,18 @@ class QuizProvider extends ChangeNotifier {
     return true;
   }
 
-  Future<void> _finishQuiz() async {
+  Future<void> _finishQuiz() {
+    if (_lastResult != null && _finishFuture == null) {
+      return Future.value();
+    }
+    return _finishFuture ??= _completeQuiz();
+  }
+
+  Future<void> _completeQuiz() async {
     final category = _category;
-    if (category == null || _lastResult != null) return;
+    if (category == null) return;
+    _isLoading = true;
+    _finishError = null;
     final result = QuizResult(
       categoryId: category.id,
       categoryName: category.name,
@@ -131,8 +146,18 @@ class QuizProvider extends ChangeNotifier {
       attemptId: _createAttemptId(),
     );
     _lastResult = result;
-    await _profileProvider.recordResult(result);
     notifyListeners();
+    try {
+      await _profileProvider.recordResult(result);
+    } catch (error) {
+      _finishError =
+          'No se pudo guardar el resultado: '
+          '${error.toString().replaceFirst('Bad state: ', '')}';
+    } finally {
+      _isLoading = false;
+      _finishFuture = null;
+      notifyListeners();
+    }
   }
 
   String _createAttemptId() {

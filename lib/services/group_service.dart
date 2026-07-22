@@ -30,10 +30,17 @@ class GroupService {
     required String name,
     String? description,
   }) async {
+    final authenticatedUserId = _supabase.client!.auth.currentUser?.id;
+    if (authenticatedUserId == null) {
+      throw StateError('Debes iniciar sesión para crear un grupo.');
+    }
+    if (authenticatedUserId != ownerId) {
+      throw StateError('La sesión activa no coincide con el propietario.');
+    }
     final row = await _supabase.client!
         .from('friend_groups')
         .insert({
-          'owner_id': ownerId,
+          'owner_id': authenticatedUserId,
           'name': name.trim(),
           'description': _nullableText(description),
           'invite_code': _inviteCode(),

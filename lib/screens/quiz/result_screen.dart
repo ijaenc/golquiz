@@ -33,6 +33,7 @@ class _ResultScreenState extends State<ResultScreen> {
   @override
   Widget build(BuildContext context) {
     final result = context.watch<QuizProvider>().lastResult;
+    final finishError = context.watch<QuizProvider>().finishError;
     final syncError = context.watch<ProfileProvider>().syncError;
     if (result == null) {
       return Scaffold(
@@ -157,7 +158,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 ],
               ),
               const SizedBox(height: 30),
-              if (syncError != null) ...[
+              if (finishError != null || syncError != null) ...[
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -165,7 +166,7 @@ class _ResultScreenState extends State<ResultScreen> {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.warning),
                   ),
-                  child: Text(syncError),
+                  child: Text(finishError ?? syncError!),
                 ),
                 const SizedBox(height: 14),
               ],

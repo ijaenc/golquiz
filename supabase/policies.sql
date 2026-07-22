@@ -5,6 +5,7 @@ alter table public.group_members enable row level security;
 
 create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
+grant usage on schema private to authenticated;
 
 create or replace function private.is_group_member(p_group_id uuid)
 returns boolean
@@ -21,6 +22,9 @@ as $$
   );
 $$;
 
+revoke all on function private.is_group_member(uuid) from public, anon;
+grant execute on function private.is_group_member(uuid) to authenticated;
+
 create or replace function private.is_group_owner(p_group_id uuid)
 returns boolean
 language sql
@@ -35,6 +39,9 @@ as $$
       and fg.owner_id = auth.uid()
   );
 $$;
+
+revoke all on function private.is_group_owner(uuid) from public, anon;
+grant execute on function private.is_group_owner(uuid) to authenticated;
 
 drop policy if exists "Authenticated users can read profiles" on public.profiles;
 create policy "Authenticated users can read profiles"
@@ -71,7 +78,10 @@ drop policy if exists "Members can read groups" on public.friend_groups;
 create policy "Members can read groups"
 on public.friend_groups for select
 to authenticated
-using (private.is_group_member(id));
+using (
+  (select auth.uid()) = owner_id
+  or private.is_group_member(id)
+);
 
 drop policy if exists "Users can create owned groups" on public.friend_groups;
 create policy "Users can create owned groups"
