@@ -8,6 +8,8 @@ import 'package:golquiz/main.dart';
 import 'package:golquiz/models/quiz_question.dart';
 import 'package:golquiz/models/quiz_result.dart';
 import 'package:golquiz/providers/profile_provider.dart';
+import 'package:golquiz/providers/quiz_provider.dart';
+import 'package:golquiz/screens/quiz/quiz_screen.dart';
 
 void main() {
   Future<void> enterDemo(WidgetTester tester) async {
@@ -56,6 +58,48 @@ void main() {
 
     expect(find.text('Pregunta 1 de 5'), findsOneWidget);
     expect(find.text('Responder'), findsOneWidget);
+  });
+
+  testWidgets('la quinta respuesta abre la pantalla de resultados', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(414, 896);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+    await enterDemo(tester);
+
+    final categoryButton = find.text('Elegir categoría');
+    await tester.ensureVisible(categoryButton);
+    await tester.tap(categoryButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mundiales').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Comenzar quiz'));
+    await tester.pumpAndSettle();
+
+    final quiz = Provider.of<QuizProvider>(
+      tester.element(find.byType(QuizScreen)),
+      listen: false,
+    );
+    for (var question = 0; question < 5; question++) {
+      quiz.selectAnswer(0);
+      quiz.submitAnswer();
+      await tester.pump();
+      final continueLabel = question == 4
+          ? 'Ver resultados'
+          : 'Siguiente pregunta';
+      final continueButton = find.text(continueLabel);
+      await tester.ensureVisible(continueButton);
+      await tester.tap(continueButton);
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text('Resultados'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('login se adapta al tamaño lógico de iPhone 11', (tester) async {

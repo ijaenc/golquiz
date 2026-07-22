@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -28,7 +29,6 @@ class QuizProvider extends ChangeNotifier {
   int _bestStreak = 0;
   int _correctAnswers = 0;
   QuizResult? _lastResult;
-  Future<void>? _finishFuture;
   String? _finishError;
 
   QuizCategory? get category => _category;
@@ -75,7 +75,6 @@ class QuizProvider extends ChangeNotifier {
     _bestStreak = 0;
     _correctAnswers = 0;
     _lastResult = null;
-    _finishFuture = null;
     _finishError = null;
     _isLoading = false;
     notifyListeners();
@@ -118,21 +117,18 @@ class QuizProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    await _finishQuiz();
+    _finishQuiz();
     return true;
   }
 
-  Future<void> _finishQuiz() {
-    if (_lastResult != null && _finishFuture == null) {
-      return Future.value();
-    }
-    return _finishFuture ??= _completeQuiz();
-  }
-
-  Future<void> _completeQuiz() async {
+  void _finishQuiz() {
+    if (_lastResult != null) return;
     final category = _category;
-    if (category == null) return;
-    _isLoading = true;
+    if (category == null) {
+      _finishError = 'No se pudo identificar la categoría de la partida.';
+      notifyListeners();
+      return;
+    }
     _finishError = null;
     final result = QuizResult(
       categoryId: category.id,
@@ -146,7 +142,11 @@ class QuizProvider extends ChangeNotifier {
       attemptId: _createAttemptId(),
     );
     _lastResult = result;
+    unawaited(_persistResult(result));
     notifyListeners();
+  }
+
+  Future<void> _persistResult(QuizResult result) async {
     try {
       await _profileProvider.recordResult(result);
     } catch (error) {
@@ -154,15 +154,18 @@ class QuizProvider extends ChangeNotifier {
           'No se pudo guardar el resultado: '
           '${error.toString().replaceFirst('Bad state: ', '')}';
     } finally {
-      _isLoading = false;
-      _finishFuture = null;
       notifyListeners();
     }
   }
 
   String _createAttemptId() {
-    final random = Random.secure().nextInt(1 << 32).toRadixString(16);
-    return '${DateTime.now().microsecondsSinceEpoch}-$random';
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    try {
+      final random = Random.secure().nextInt(1 << 32).toRadixString(16);
+      return '$timestamp-$random';
+    } catch (_) {
+      return '$timestamp-${identityHashCode(this)}';
+    }
   }
 
   Future<void> replay() async {

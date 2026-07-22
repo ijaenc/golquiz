@@ -165,6 +165,12 @@ begin
     raise exception 'Authentication required';
   end if;
 
+  if not exists (
+    select 1 from public.profiles where id = v_user_id
+  ) then
+    raise exception 'User profile not found';
+  end if;
+
   insert into public.quiz_attempts (
     client_attempt_id,
     user_id,

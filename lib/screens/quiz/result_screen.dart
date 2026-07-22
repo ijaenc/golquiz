@@ -34,7 +34,8 @@ class _ResultScreenState extends State<ResultScreen> {
   Widget build(BuildContext context) {
     final result = context.watch<QuizProvider>().lastResult;
     final finishError = context.watch<QuizProvider>().finishError;
-    final syncError = context.watch<ProfileProvider>().syncError;
+    final profile = context.watch<ProfileProvider>();
+    final syncError = profile.syncError;
     if (result == null) {
       return Scaffold(
         body: Center(
@@ -158,6 +159,20 @@ class _ResultScreenState extends State<ResultScreen> {
                 ],
               ),
               const SizedBox(height: 30),
+              if (profile.isSyncing) ...[
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 10),
+                    Text('Sincronizando progreso...'),
+                  ],
+                ),
+                const SizedBox(height: 14),
+              ],
               if (finishError != null || syncError != null) ...[
                 Container(
                   padding: const EdgeInsets.all(14),
@@ -168,6 +183,16 @@ class _ResultScreenState extends State<ResultScreen> {
                   ),
                   child: Text(finishError ?? syncError!),
                 ),
+                if (syncError != null)
+                  TextButton.icon(
+                    onPressed: profile.isSyncing
+                        ? null
+                        : () => context.read<ProfileProvider>().syncResult(
+                            result,
+                          ),
+                    icon: const Icon(Icons.sync_rounded),
+                    label: const Text('Reintentar sincronización'),
+                  ),
                 const SizedBox(height: 14),
               ],
               PrimaryButton(

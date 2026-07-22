@@ -101,6 +101,20 @@ class GroupProvider extends ChangeNotifier {
     return success;
   }
 
+  Future<bool> removeMember({
+    required FriendGroup group,
+    required String userId,
+  }) async {
+    if (!group.isOwner || userId == group.ownerId) return false;
+    var success = false;
+    await _load(() async {
+      await _groupService.removeMember(groupId: group.id, userId: userId);
+      _members.removeWhere((member) => member.user.id == userId);
+      success = true;
+    });
+    return success;
+  }
+
   void clear() {
     _groups = [];
     _members = [];

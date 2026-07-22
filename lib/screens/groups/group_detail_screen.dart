@@ -103,6 +103,41 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     if (success && mounted) Navigator.pop(context);
   }
 
+  Future<void> _removeMember(GroupMember member) async {
+    if (!widget.group.isOwner || member.role == 'owner') return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Expulsar integrante'),
+        content: Text(
+          '¿Quieres sacar a ${member.user.name} del grupo? '
+          'Podrá volver a unirse si recibe nuevamente el código.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Expulsar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final success = await context.read<GroupProvider>().removeMember(
+      group: widget.group,
+      userId: member.user.id,
+    );
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${member.user.name} fue expulsado del grupo.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<GroupProvider>();
@@ -197,7 +232,12 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : TabBarView(
                       children: [
-                        _MembersList(members: provider.members),
+                        _MembersList(
+                          members: provider.members,
+                          canRemoveMembers: widget.group.isOwner,
+                          isLoading: provider.isLoading,
+                          onRemove: _removeMember,
+                        ),
                         _GroupRanking(members: provider.members),
                       ],
                     ),
@@ -210,8 +250,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 }
 
 class _MembersList extends StatelessWidget {
-  const _MembersList({required this.members});
+  const _MembersList({
+    required this.members,
+    required this.canRemoveMembers,
+    required this.isLoading,
+    required this.onRemove,
+  });
   final List<GroupMember> members;
+  final bool canRemoveMembers;
+  final bool isLoading;
+  final ValueChanged<GroupMember> onRemove;
 
   @override
   Widget build(BuildContext context) => ListView.separated(
@@ -229,7 +277,21 @@ class _MembersList extends StatelessWidget {
         leading: CircleAvatar(child: Text(member.user.initial)),
         title: Text(member.user.name),
         subtitle: Text(member.role == 'owner' ? 'Dueño' : 'Integrante'),
-        trailing: Text('${member.user.score} pts'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('${member.user.score} pts'),
+            if (canRemoveMembers && member.role != 'owner') ...[
+              const SizedBox(width: 4),
+              IconButton(
+                tooltip: 'Expulsar integrante',
+                color: AppColors.error,
+                onPressed: isLoading ? null : () => onRemove(member),
+                icon: const Icon(Icons.person_remove_rounded),
+              ),
+            ],
+          ],
+        ),
       );
     },
   );

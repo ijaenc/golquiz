@@ -82,6 +82,23 @@ class GroupService {
     await _supabase.client!.from('friend_groups').delete().eq('id', groupId);
   }
 
+  Future<void> removeMember({
+    required String groupId,
+    required String userId,
+  }) async {
+    final deletedRows = await _supabase.client!
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+        .select('user_id');
+    if (deletedRows.isEmpty) {
+      throw StateError(
+        'No se pudo expulsar al integrante. Verifica que seas el dueño.',
+      );
+    }
+  }
+
   Future<List<GroupMember>> fetchMembers(
     String groupId,
     String currentUserId,

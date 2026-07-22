@@ -9,38 +9,6 @@ import '../../providers/profile_provider.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  Future<void> _editName(BuildContext context, String currentName) async {
-    final controller = TextEditingController(text: currentName);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Editar nombre'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 28,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Nombre visible'),
-          onSubmitted: (value) => Navigator.pop(dialogContext, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (name != null && context.mounted) {
-      await context.read<ProfileProvider>().updateName(name);
-    }
-  }
-
   Future<void> _reset(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -124,11 +92,6 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => _editName(context, user.name),
-                  icon: const Icon(Icons.edit_rounded),
-                  tooltip: 'Editar nombre',
-                ),
               ],
             ),
             const SizedBox(height: 26),
@@ -195,11 +158,6 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
             const SizedBox(height: 24),
-            OutlinedButton.icon(
-              onPressed: () => _editName(context, user.name),
-              icon: const Icon(Icons.edit_rounded),
-              label: const Text('Editar nombre'),
-            ),
             if (auth.isDemo)
               OutlinedButton.icon(
                 onPressed: () => _reset(context),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/local_questions.dart';
@@ -13,6 +15,7 @@ class RankingProvider extends ChangeNotifier {
     this._authProvider,
     this._rankingService,
   ) {
+    _seenRankingRevision = _profileProvider.rankingRevision;
     _profileProvider.addListener(_onProfileChanged);
     _authProvider.addListener(_onAuthChanged);
   }
@@ -28,6 +31,7 @@ class RankingProvider extends ChangeNotifier {
   String _categoryId = quizCategories.first.id;
   QuizDifficulty _difficulty = QuizDifficulty.easy;
   int _questionCount = 5;
+  int _seenRankingRevision = 0;
 
   static const _mockUsers = <LeaderboardUser>[
     LeaderboardUser(id: 'mock-1', name: 'SofiGol', score: 1850, initial: 'S'),
@@ -153,7 +157,70 @@ class RankingProvider extends ChangeNotifier {
     }
   }
 
-  void _onProfileChanged() => notifyListeners();
+  void _onProfileChanged() {
+    _updateCurrentUserSnapshots();
+    final revision = _profileProvider.rankingRevision;
+    if (revision != _seenRankingRevision) {
+      _seenRankingRevision = revision;
+      unawaited(_refreshAfterSuccessfulSync());
+    }
+    notifyListeners();
+  }
+
+  void _updateCurrentUserSnapshots() {
+    if (_useLocalFallback) return;
+    final user = _profileProvider.user;
+    _upsertCurrentUser(
+      _globalUsers,
+      score: user.totalScore,
+      includeIfMissing: true,
+    );
+    final recordKey = '${_categoryId}_${_difficulty.name}_$_questionCount';
+    final bestScore = user.bestScores[recordKey] ?? 0;
+    _upsertCurrentUser(
+      _quizUsers,
+      score: bestScore,
+      includeIfMissing: bestScore > 0,
+    );
+  }
+
+  void _upsertCurrentUser(
+    List<LeaderboardUser> users, {
+    required int score,
+    required bool includeIfMissing,
+  }) {
+    final profile = _profileProvider.user;
+    final index = users.indexWhere((user) => user.id == profile.id);
+    if (index < 0 && !includeIfMissing) return;
+    final previous = index < 0 ? null : users[index];
+    final updated = LeaderboardUser(
+      id: profile.id,
+      name: profile.name,
+      score: score,
+      initial: profile.initial,
+      isCurrentUser: true,
+      completedAt: previous?.completedAt,
+    );
+    if (index < 0) {
+      users.add(updated);
+    } else {
+      users[index] = updated;
+    }
+    users.sort((a, b) => b.score.compareTo(a.score));
+  }
+
+  Future<void> _refreshAfterSuccessfulSync() async {
+    if (_useLocalFallback) return;
+    await _load(() async {
+      _globalUsers = await _rankingService.fetchGlobal(_authProvider.user.id);
+      _quizUsers = await _rankingService.fetchBestQuiz(
+        currentUserId: _authProvider.user.id,
+        categoryId: _categoryId,
+        difficulty: _difficulty,
+        questionCount: _questionCount,
+      );
+    });
+  }
 
   void _onAuthChanged() {
     if (!_authProvider.isAuthenticated) {

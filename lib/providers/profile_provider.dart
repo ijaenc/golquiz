@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/app_user.dart';
@@ -20,11 +22,15 @@ class ProfileProvider extends ChangeNotifier {
   final ProfileService _profileService;
   final QuizAttemptService _attemptService;
   bool _isLoading = false;
+  final Set<String> _syncingAttemptIds = {};
+  int _rankingRevision = 0;
   String? _error;
   String? _syncError;
 
   AppUser get user => _authProvider.user;
   bool get isLoading => _isLoading;
+  bool get isSyncing => _syncingAttemptIds.isNotEmpty;
+  int get rankingRevision => _rankingRevision;
   String? get error => _error;
   String? get syncError => _syncError;
 
@@ -49,38 +55,54 @@ class ProfileProvider extends ChangeNotifier {
 
   Future<void> recordResult(QuizResult result) async {
     final attemptId = result.attemptId;
-    if (attemptId != null && _storage.isAttemptProcessed(attemptId)) return;
-
-    final records = Map<String, int>.from(user.bestScores);
-    _setBest(records, result.recordKey, result.score);
-    _setBest(records, 'category_${result.categoryId}', result.score);
-    _setBest(records, 'difficulty_${result.difficulty.name}', result.score);
-    _setBest(records, 'count_${result.questionCount}', result.score);
-
-    await _authProvider.updateUser(
-      user.copyWith(
-        totalScore: user.totalScore + result.score,
-        gamesPlayed: user.gamesPlayed + 1,
-        correctAnswers: user.correctAnswers + result.correctAnswers,
-        incorrectAnswers: user.incorrectAnswers + result.incorrectAnswers,
-        bestStreak: result.bestStreak > user.bestStreak
-            ? result.bestStreak
-            : user.bestStreak,
-        bestScores: records,
-      ),
-    );
-    if (attemptId != null) await _storage.markAttemptProcessed(attemptId);
-
-    _syncError = null;
     if (!_authProvider.isDemo && _attemptService.isConfigured) {
-      try {
-        await _attemptService.recordAttempt(result);
-      } catch (error) {
-        _syncError =
-            'El resultado quedó guardado localmente, pero no se pudo sincronizar: $error';
-      }
+      unawaited(syncResult(result));
     }
+
+    final isLocallyProcessed =
+        attemptId != null && _storage.isAttemptProcessed(attemptId);
+    if (!isLocallyProcessed) {
+      final records = Map<String, int>.from(user.bestScores);
+      _setBest(records, result.recordKey, result.score);
+      _setBest(records, 'category_${result.categoryId}', result.score);
+      _setBest(records, 'difficulty_${result.difficulty.name}', result.score);
+      _setBest(records, 'count_${result.questionCount}', result.score);
+
+      await _authProvider.updateUser(
+        user.copyWith(
+          totalScore: user.totalScore + result.score,
+          gamesPlayed: user.gamesPlayed + 1,
+          correctAnswers: user.correctAnswers + result.correctAnswers,
+          incorrectAnswers: user.incorrectAnswers + result.incorrectAnswers,
+          bestStreak: result.bestStreak > user.bestStreak
+              ? result.bestStreak
+              : user.bestStreak,
+          bestScores: records,
+        ),
+      );
+      if (attemptId != null) await _storage.markAttemptProcessed(attemptId);
+    }
+
     notifyListeners();
+  }
+
+  Future<void> syncResult(QuizResult result) async {
+    final attemptId = result.attemptId;
+    if (attemptId == null || _syncingAttemptIds.contains(attemptId)) return;
+    _syncingAttemptIds.add(attemptId);
+    _syncError = null;
+    notifyListeners();
+    try {
+      await _attemptService.recordAttempt(result);
+      _rankingRevision++;
+    } catch (error) {
+      _syncError =
+          'El resultado quedó guardado localmente, pero no se pudo '
+          'sincronizar: ${error.toString().replaceFirst('Bad state: ', '')}';
+    } finally {
+      _syncingAttemptIds.remove(attemptId);
+      notifyListeners();
+    }
   }
 
   void _setBest(Map<String, int> records, String key, int score) {
