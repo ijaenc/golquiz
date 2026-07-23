@@ -6,7 +6,6 @@ import '../../core/layout/responsive_layout.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/answer_option_card.dart';
 import '../../widgets/primary_button.dart';
-import '../../widgets/score_badge.dart';
 import 'result_screen.dart';
 
 class QuizScreen extends StatelessWidget {
@@ -43,12 +42,6 @@ class QuizScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ScoreBadge(score: quiz.score, suffix: ''),
-          ),
-        ],
       ),
       body: SafeArea(
         top: false,
@@ -62,15 +55,7 @@ class QuizScreen extends StatelessWidget {
               28,
             ),
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: LinearProgressIndicator(
-                  value: quiz.progress,
-                  minHeight: 10,
-                  backgroundColor: AppColors.outline,
-                  color: AppColors.primary,
-                ),
-              ),
+              _QuizProgressHeader(quiz: quiz),
               const SizedBox(height: 18),
               Row(
                 children: [
@@ -199,6 +184,145 @@ class QuizScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _QuizProgressHeader extends StatelessWidget {
+  const _QuizProgressHeader({required this.quiz});
+
+  final QuizProvider quiz;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentQuestion = quiz.currentIndex + 1;
+    final totalQuestions = quiz.questions.length;
+    final progressPercentage = (quiz.progress * 100).round();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.outline),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _QuizProgressItem(
+                  icon: Icons.help_outline_rounded,
+                  value: '$currentQuestion/$totalQuestions',
+                  label: 'Pregunta',
+                ),
+              ),
+              Expanded(
+                child: _QuizProgressItem(
+                  icon: Icons.stars_rounded,
+                  value: '${quiz.score}',
+                  label: 'Puntos',
+                ),
+              ),
+              Expanded(
+                child: _QuizProgressItem(
+                  icon: Icons.check_circle_outline_rounded,
+                  value: '${quiz.correctAnswers}',
+                  label: 'Correctas',
+                ),
+              ),
+              Expanded(
+                child: _QuizProgressItem(
+                  icon: Icons.local_fire_department_rounded,
+                  value: 'x${quiz.currentStreak}',
+                  label: 'Racha',
+                  highlight: quiz.currentStreak >= 2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text(
+                'Progreso',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$progressPercentage%',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: quiz.progress,
+              minHeight: 10,
+              backgroundColor: AppColors.outline,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuizProgressItem extends StatelessWidget {
+  const _QuizProgressItem({
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.highlight = false,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = highlight ? AppColors.warning : AppColors.primary;
+
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          style: TextStyle(
+            color: highlight ? AppColors.warning : AppColors.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -49,8 +49,13 @@ class QuizProvider extends ChangeNotifier {
       _currentIndex + (_isAnswered ? 1 : 0) - _correctAnswers;
   QuizResult? get lastResult => _lastResult;
   String? get finishError => _finishError;
-  double get progress =>
-      _questions.isEmpty ? 0 : (_currentIndex + 1) / _questions.length;
+  double get progress {
+    if (_questions.isEmpty) return 0;
+
+    final completedQuestions = _currentIndex + (_isAnswered ? 1 : 0);
+
+    return completedQuestions / _questions.length;
+  }
 
   Future<void> startQuiz({
     required QuizCategory category,

@@ -47,6 +47,4 @@ app.*.map.json
 .codex-private/
 
 # Variables de entorno y credenciales locales
-.env
-.env.*
 !.env.example

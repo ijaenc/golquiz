@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/ranking_provider.dart';
 import '../../widgets/primary_button.dart';
@@ -12,6 +13,7 @@ import '../ranking/ranking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -22,18 +24,23 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      const _HomeTab(),
+      _HomeTab(
+        onOpenRanking: () => setState(() => _selectedIndex = 1),
+        onOpenGroups: () => setState(() => _selectedIndex = 2),
+      ),
       const RankingScreen(),
       const GroupsScreen(),
       const ProfileScreen(),
     ];
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _selectedIndex = index),
+        onDestinationSelected: (index) {
+          setState(() => _selectedIndex = index);
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -62,12 +69,17 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeTab extends StatelessWidget {
-  const _HomeTab();
+  const _HomeTab({required this.onOpenRanking, required this.onOpenGroups});
+
+  final VoidCallback onOpenRanking;
+  final VoidCallback onOpenGroups;
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
     final user = context.watch<ProfileProvider>().user;
     final position = context.watch<RankingProvider>().currentUserPosition;
+
     return SafeArea(
       child: CustomScrollView(
         slivers: [
@@ -86,12 +98,14 @@ class _HomeTab extends StatelessWidget {
                   Row(
                     children: [
                       CircleAvatar(
+                        radius: 22,
                         backgroundColor: AppColors.primary,
                         child: Text(
                           user.initial,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
+                            fontSize: 17,
                           ),
                         ),
                       ),
@@ -125,22 +139,47 @@ class _HomeTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
                   const Text(
-                    '¿Listo para demostrar\ncuánto sabes de fútbol?',
+                    'Demuestra cuánto\nsabes de fútbol',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 27,
+                      fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      height: 1.18,
+                      height: 1.15,
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Responde preguntas, suma puntos y sube en el ranking.',
+                    style: TextStyle(
+                      color: Color(0xFFCBD5E1),
+                      fontSize: 15,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  PrimaryButton(
+                    label: 'Jugar ahora',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CategoriesScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 30),
             sliver: SliverList.list(
               children: [
+                if (auth.isDemo) ...[
+                  const _DemoBanner(),
+                  const SizedBox(height: 20),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -168,51 +207,238 @@ class _HomeTab extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(22),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.quiz_rounded,
-                          size: 42,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'Nuevo desafío',
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Elige una categoría, ajusta la dificultad y suma puntos.',
-                        ),
-                        const SizedBox(height: 22),
-                        PrimaryButton(
-                          label: 'Elegir categoría',
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CategoriesScreen(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                const SizedBox(height: 24),
+                _ProgressCard(
+                  gamesPlayed: user.gamesPlayed,
+                  accuracy: user.accuracy,
+                  correctAnswers: user.correctAnswers,
+                  incorrectAnswers: user.incorrectAnswers,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Text(
-                  '${user.gamesPlayed} partidas jugadas · ${(user.accuracy * 100).round()}% de acierto',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  'Accesos rápidos',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _QuickAccessCard(
+                        icon: Icons.leaderboard_rounded,
+                        title: 'Ranking',
+                        subtitle: 'Compara tus puntos',
+                        onTap: onOpenRanking,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _QuickAccessCard(
+                        icon: Icons.groups_rounded,
+                        title: 'Grupos',
+                        subtitle: 'Compite con amigos',
+                        onTap: onOpenGroups,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DemoBanner extends StatelessWidget {
+  const _DemoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: AppColors.primary),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Estás usando el modo demo. Tu progreso se guarda solamente en este dispositivo.',
+              style: TextStyle(fontWeight: FontWeight.w600, height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard({
+    required this.gamesPlayed,
+    required this.accuracy,
+    required this.correctAnswers,
+    required this.incorrectAnswers,
+  });
+
+  final int gamesPlayed;
+  final double accuracy;
+  final int correctAnswers;
+  final int incorrectAnswers;
+
+  @override
+  Widget build(BuildContext context) {
+    final accuracyPercentage = (accuracy * 100).round();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.insights_rounded, color: AppColors.primary),
+                const SizedBox(width: 10),
+                Text(
+                  'Tu progreso',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: _ProgressItem(
+                    value: '$gamesPlayed',
+                    label: 'Partidas',
+                  ),
+                ),
+                Expanded(
+                  child: _ProgressItem(
+                    value: '$accuracyPercentage%',
+                    label: 'Precisión',
+                  ),
+                ),
+                Expanded(
+                  child: _ProgressItem(
+                    value: '$correctAnswers',
+                    label: 'Correctas',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                minHeight: 8,
+                value: accuracy.clamp(0, 1),
+                backgroundColor: AppColors.outline,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              incorrectAnswers == 0 && correctAnswers == 0
+                  ? 'Juega tu primera partida para comenzar a medir tu progreso.'
+                  : '$correctAnswers respuestas correctas y $incorrectAnswers incorrectas.',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressItem extends StatelessWidget {
+  const _ProgressItem({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickAccessCard extends StatelessWidget {
+  const _QuickAccessCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.outline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: AppColors.primary, size: 28),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -224,30 +450,37 @@ class _MetricCard extends StatelessWidget {
     required this.value,
     required this.label,
   });
+
   final IconData icon;
   final String value;
   final String label;
+
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.outline),
-    ),
-    child: Column(
-      children: [
-        Icon(icon, color: AppColors.primary),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.outline),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.primary),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
