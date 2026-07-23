@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../categories/categories_screen.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/layout/responsive_layout.dart';
 import '../../providers/quiz_provider.dart';
@@ -30,6 +31,13 @@ class _ResultScreenState extends State<ResultScreen> {
 
   void _goHome() => Navigator.of(context).popUntil((route) => route.isFirst);
 
+  void _changeCategory() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+      (route) => route.isFirst,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final result = context.watch<QuizProvider>().lastResult;
@@ -47,11 +55,17 @@ class _ResultScreenState extends State<ResultScreen> {
       );
     }
     final percentage = (result.accuracy * 100).round();
-    final message = percentage >= 80
-        ? '¡Muy bien!'
-        : percentage >= 50
-        ? '¡Buen intento!'
-        : '¡Sigue practicando!';
+    final maximumBaseScore =
+        result.questionCount * result.difficulty.basePoints;
+
+    final pointsDifference = maximumBaseScore - result.score;
+
+    final performanceMessage = switch (percentage) {
+      >= 90 => 'Dominaste esta categoría',
+      >= 70 => 'Tu rendimiento fue muy bueno',
+      >= 50 => 'Vas por buen camino',
+      _ => 'Sigue jugando para mejorar',
+    };
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -114,10 +128,10 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
               const SizedBox(height: 26),
               Text(
-                message,
+                performanceMessage,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 28,
+                  fontSize: 27,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -128,6 +142,13 @@ class _ResultScreenState extends State<ResultScreen> {
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 30),
+              _ResultSummaryCard(
+                percentage: percentage,
+                score: result.score,
+                baseScore: maximumBaseScore,
+                pointsDifference: pointsDifference,
+              ),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
@@ -203,6 +224,12 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
+                onPressed: _changeCategory,
+                icon: const Icon(Icons.category_rounded),
+                label: const Text('Cambiar categoría'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
                 onPressed: _goHome,
                 icon: const Icon(Icons.home_rounded),
                 label: const Text('Volver al inicio'),
@@ -250,4 +277,104 @@ class _ResultMetric extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _ResultSummaryCard extends StatelessWidget {
+  const _ResultSummaryCard({
+    required this.percentage,
+    required this.score,
+    required this.baseScore,
+    required this.pointsDifference,
+  });
+
+  final int percentage;
+  final int score;
+  final int baseScore;
+  final int pointsDifference;
+
+  @override
+  Widget build(BuildContext context) {
+    final earnedBonus = score > baseScore;
+    final difference = pointsDifference.abs();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.analytics_outlined, color: AppColors.primary),
+              SizedBox(width: 9),
+              Text(
+                'Resumen de la partida',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _SummaryRow(label: 'Precisión', value: '$percentage%'),
+          const SizedBox(height: 12),
+          _SummaryRow(label: 'Puntaje obtenido', value: '$score pts'),
+          const SizedBox(height: 12),
+          _SummaryRow(label: 'Puntos base posibles', value: '$baseScore pts'),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: earnedBonus
+                  ? const Color(0xFFECFDF3)
+                  : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              earnedBonus
+                  ? 'Obtuviste $difference puntos extra gracias a tus rachas.'
+                  : difference == 0
+                  ? 'Conseguiste todos los puntos base disponibles.'
+                  : 'Te faltaron $difference puntos para completar el puntaje base.',
+              style: TextStyle(
+                color: earnedBonus
+                    ? AppColors.success
+                    : AppColors.textSecondary,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+      ],
+    );
+  }
 }
